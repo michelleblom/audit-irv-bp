@@ -1,2 +1,40 @@
 # audit-irv-bp
-Code for generating and running ballot polling audits for IRV elections.
+This repository contains code for generating and running risk limiting ballot polling audits for IRV elections. Find an audit specification with the following command (taking NSW 2015 election as an example) to generate an audit specification given a 5% risk limit and a 1% chance of an error being injected into each ballot. You can find some data files for use with this code in my repository NSW2015. 
+
+./irvaudit -act_ballots Data_NA_Albury.txt_ballots.txt -rep_ballots Data_NA_Albury.txt_ballots.txt -r 0.05 -dive -s 39284575696785 -eseed 9284896769459 -eprob 0.01
+
+You should get the following output:
+
+440 errors added.
+Reading Audits
+Finished reading audits
+============================================
+AUDITS REQUIRED
+EO,Winner,3,Loser,0,Eliminated,1,2,4
+EO,Winner,0,Loser,1,Eliminated,2,3,4
+EO,Winner,0,Loser,4,Eliminated,1,2,3
+EO,Winner,0,Loser,2,Eliminated,1,3,4
+WO,Winner,3,Loser,4,Eliminated
+WO,Winner,3,Loser,2,Eliminated
+EO,Winner,3,Loser,4,Eliminated,0,1,2
+WO,Winner,3,Loser,1,Eliminated
+EO,Winner,3,Loser,2,Eliminated,0,1,4
+EO,Winner,3,Loser,1,Eliminated,0,2,4
+MAX ASN(%) 0.20287
+============================================
+TIME,0.0971379,Nodes Expanded,0,MAX ASN(%),0.20287
+
+
+This means that the algorithm found a series of facts (one per line) to audit, requiring an estimated 0.21% of total ballots cast to be polled.
+
+Let's now take the above audit specification and run it! With the above output in a file called audit.txt, we do this with the command:
+
+./irvaudit -act_ballots Data_NA_Albury.txt_ballots.txt -rep_ballots Data_NA_Albury.txt_ballots.txt -r 0.05 -run audit.txt -s 39284575696785 -eseed 9284896769459 -eprob 0.01
+
+NOTE that you might beed to replace a line of code in model.cpp (line 63) with a version of python you have (if you don't have python3.6. Yes, I know -- this could have been done better. 
+
+You should see a lot of text logging changes in the statistics being maintained by the audit, with the following at the bottom:
+
+TOTAL BALLOTS POLLED = 176 (0.379842%)
+SUCCESSFUL AUDITS = 10/10
+
