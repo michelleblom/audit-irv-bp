@@ -28,6 +28,8 @@ struct AuditSpec{
 
 	Ints eliminated;
 	bool wonly;
+
+    Ints rules_out;
 };
 
 struct Result{

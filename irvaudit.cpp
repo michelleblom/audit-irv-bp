@@ -79,6 +79,42 @@ Node CreateNode(const SimpleNode &sn){
 	return newn;
 }
 
+
+bool AppearsBefore(int winner, int loser, const Ints &tail){
+    int l_index = -1;
+    int w_index = -1;
+    for(int i = tail.size()-1; i >= 0; --i){
+        if(tail[i] == loser){
+            l_index = i;
+        }
+
+        if(tail[i] == winner){
+            w_index = i;
+        }
+    }
+
+    if(w_index < l_index)
+        return true;
+
+    return false;
+}
+
+bool Subsumes(const AuditSpec &a1, const AuditSpec &a2){
+    if(!a1.wonly || a2.wonly)
+        return false;
+
+    if(a1.wonly && (a1.winner == a2.winner && a1.loser == a2.loser))
+        return true;
+
+    if(a1.wonly && AppearsBefore(a1.winner, a1.loser, a2.rules_out)){
+        return true;
+    }
+    
+    return false;
+}
+
+
+
 bool AreAuditsEqual(const AuditSpec &a1, const AuditSpec &a2){
 	if(a1.winner != a2.winner || a1.loser != a2.loser)
 		return false;
@@ -178,6 +214,20 @@ void PrintAudit(const AuditSpec &audit, const Candidates &cand){
 	for(int i = 0; i < audit.eliminated.size(); ++i){
 		cout << "," << cand[audit.eliminated[i]].id;
 	}
+
+    if(audit.wonly){
+        cout << ",Rules out case where " <<  cand[audit.winner].id 
+            << " is eliminated before " << cand[audit.loser].id << endl;
+    }
+    else{
+        cout << ",Rules out outcomes with a tail ";
+        for(int i = 0; i < audit.rules_out.size(); ++i){
+            cout << cand[audit.rules_out[i]].id << " ";
+        }
+	    cout << endl;
+    }
+
+
 	cout << endl;
 }
 
@@ -230,6 +280,7 @@ double FindBestAudit(const Candidates &candidates, const Ballots &ballots, doubl
 
 	// Look at alternate ways of disproving hypothesis
 	AuditSpec alternate;
+    alternate.rules_out = tail;
 	alternate.wonly = false;
 	alternate.asn = EstimateSampleSize(ballots, candidates,
 		logrlimit, tail, alternate, alglog);
@@ -395,7 +446,7 @@ int main(int argc, const char * argv[])
 		long error_seed = 1837584657664;
 		double error_prob = 0;
 
-		bool diving = false;
+		bool diving = true;
 
 		double lowerbound = -10;
 		const char *rep_blts_file = NULL;
@@ -592,6 +643,7 @@ int main(int argc, const char * argv[])
 					candidates,logrlimit,cj,ci);
 				if(asn != -1){
 					AuditSpec aspec;
+                    aspec.rules_out.push_back(ci);
 					aspec.asn = asn;
 					aspec.winner = cj;
 					aspec.loser = ci;
