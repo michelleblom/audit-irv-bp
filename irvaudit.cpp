@@ -227,8 +227,6 @@ void PrintAudit(const AuditSpec &audit, const Candidates &cand){
 	    cout << endl;
     }
 
-
-	cout << endl;
 }
 
 void PrintFrontier(const Frontier &front, const Candidates &cand){
@@ -898,9 +896,20 @@ int main(int argc, const char * argv[])
 			cout << "AUDITS REQUIRED" << endl;
 			maxasn = 0;
 			for(Audits::const_iterator it = audits.begin(); it != audits.end();++it){
-				PrintAudit(*it, candidates);
-				maxasn = max(maxasn, it->asn);
+                bool subsumed = false;
+                for(Audits::const_iterator jt = audits.begin(); jt != audits.end(); ++jt){
+                    if(jt == it) continue;
+                    if(Subsumes(*jt, *it)){
+                        subsumed = true;
+                        break;
+                    }
+                }
+                if(!subsumed){
+				    PrintAudit(*it, candidates);
+				    maxasn = max(maxasn, it->asn);
+                }
 			}
+
 			maxasn *= 100;
 			cout << "MAX ASN(%) " << maxasn << endl;
 			cout << "============================================" << endl;
