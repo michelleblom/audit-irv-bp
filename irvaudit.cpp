@@ -24,12 +24,16 @@
 #include<algorithm>
 #include<list>
 #include<cmath>
+#include<boost/property_tree/ptree.hpp>
+#include<boost/property_tree/json_parser.hpp>
+
 
 #include "model.h"
 #include "sim_irv.h"
 #include "audit.h"
 
 using namespace std;
+using boost::property_tree::ptree;
 
 void print_list(const Ints &list){
 	for(int i = 0; i < list.size(); ++i){
@@ -201,6 +205,62 @@ void PrintNode(const Node &n, const Candidates &cand){
 	}
 }
 
+
+
+void OutputToJSON(const Audits &aconfig, const Candidates &cand, 
+    const char *json_file){
+    try{
+        ptree pt;
+        ptree children;
+
+        for(int i = 0; i < aconfig.size(); ++i){
+            const AuditSpec &spec = aconfig[i];
+            ptree child;
+            child.put("Winner", cand[spec.winner].id);
+            child.put("Loser", cand[spec.loser].id);
+            ptree aelim;
+            for(int j = 0; j < spec.eliminated.size(); ++j){
+                ptree c;
+                c.put("", cand[spec.eliminated[j]].id);
+                aelim.push_back(std::make_pair("", c));
+            }
+            child.add_child("Already-Eliminated", aelim);
+            child.put("Winner-Only", spec.wonly);
+
+            stringstream ss;
+            if(spec.wonly){
+                ss << "Rules out case where " << cand[spec.winner].id << 
+                    " is eliminated before " << cand[spec.loser].id;
+            }
+            else{
+                ss << "Rules out outcomes with tail [...";
+                for(int j = 0; j < spec.rules_out.size(); ++j){
+                    ss << " " << cand[spec.rules_out[j]].id;
+                } 
+                ss << "]";
+            }
+            child.put("Winner-Only", spec.wonly);
+            child.put("Explanation", ss.str());
+            children.push_back(std::make_pair("", child));
+        }
+        pt.add_child("Assertions", children);
+        write_json(json_file, pt);
+    }
+    catch(exception &e)
+	{
+        throw e;
+	}
+	catch(STVException &e)
+	{
+        throw e;
+	}	
+	catch(...)
+	{
+        throw STVException("Something went wrong when outputing to JSON");
+	}
+}
+
+
 void PrintAudit(const AuditSpec &audit, const Candidates &cand){
 	if(audit.wonly){
 		cout << "WO,";
@@ -220,11 +280,11 @@ void PrintAudit(const AuditSpec &audit, const Candidates &cand){
             << " is eliminated before " << cand[audit.loser].id << endl;
     }
     else{
-        cout << ",Rules out outcomes with a tail ";
+        cout << ",Rules out outcomes with a tail [...";
         for(int i = 0; i < audit.rules_out.size(); ++i){
-            cout << cand[audit.rules_out[i]].id << " ";
+            cout << " " << cand[audit.rules_out[i]].id;
         }
-	    cout << endl;
+	    cout << "]" << endl;
     }
 
 }
@@ -422,7 +482,10 @@ double PerformDive(const Node &toexpand, const Candidates &cands,
  *
  * -runlog               If present, log messages will be printed when an audit is run.
  * -run FILE             Given a file containing an audit specification, the program will
- *                           run the audit (rather than find an audit specification).      
+ *                           run the audit (rather than find an audit specification).   
+ *
+ * -json FILE           When using the program to generate an audit, this option specifies
+ *                           that the audit configuration should be output to a json file.   
  * */
 int main(int argc, const char * argv[]) 
 {
@@ -450,6 +513,7 @@ int main(int argc, const char * argv[])
 		const char *rep_blts_file = NULL;
 		const char *act_blts_file = NULL;
 		const char *audit_spec_file = NULL;
+        const char *json_output = NULL;
 
 		for(int i = 1; i < argc; ++i){
 			if(strcmp(argv[i], "-rep_ballots") == 0 && i < argc-1){
@@ -489,6 +553,7 @@ int main(int argc, const char * argv[])
 			else if(strcmp(argv[i], "-run") == 0 && i < argc - 1){
 				runAudits = true;
 				audit_spec_file = argv[i+1];
+                ++i;
 			}
 			else if(strcmp(argv[i], "-seed") == 0 && i < argc-1){
 				seed = stol(argv[i+1]);
@@ -502,7 +567,10 @@ int main(int argc, const char * argv[])
 				error_prob = ToType<double>(argv[i+1]);
 				++i;
 			}
-
+			else if(strcmp(argv[i], "-json") == 0 && i < argc - 1){
+				json_output = argv[i+1];
+                ++i;    
+			}
 		}
 
 		srand(error_seed);
@@ -511,12 +579,12 @@ int main(int argc, const char * argv[])
 			cout << "Reported ballots read error. Exiting." << endl;
 			return 1;
 		}
-		if(!ReadActualBallots(act_blts_file,act_ballots,candidates,config)){
+		if(act_blts_file != NULL && !ReadActualBallots(act_blts_file,act_ballots,candidates,config)){
 			cout << "Actual ballots read error. Exiting." << endl;
 			return 1;
 		}
 
-		if(!LoadAudits(audit_spec_file, torun, candidates, config)){
+		if(runAudits && !LoadAudits(audit_spec_file, torun, candidates, config)){
 			cout << "Audit specs read error. Exiting." << endl;
 			return 1;
 		}
@@ -553,8 +621,10 @@ int main(int argc, const char * argv[])
 				if(spec.wonly){
 					if(runlog){
 						cout<<"======================WONLY======================="<<endl;
-						cout << "Winning candidate: "<<candidates[spec.winner].id <<  " (" << spec.winner << ")" << endl;
-						cout << "Against losing candidate: "<<candidates[spec.loser].id << " (" << spec.loser << ")" << endl;
+						cout << "Winning candidate: "<<candidates[spec.winner].id <<  " (" 
+                            << spec.winner << ")" << endl;
+						cout << "Against losing candidate: "<<candidates[spec.loser].id << " (" 
+                            << spec.loser << ")" << endl;
 					}
 					Result r = RunSingleWinnerLoserAudit(rep_ballots, act_ballots,
 						candidates, rlimit, spec.winner, spec.loser, poll_order);
@@ -590,7 +660,8 @@ int main(int argc, const char * argv[])
 
 					if(runlog){
 						cout<<"================================================="<<endl;
-						cout << "Auditing that "<<candidates[spec.loser].id<< " (" << spec.loser << ") lost and " <<
+						cout << "Auditing that "<<candidates[spec.loser].id<< " (" 
+                            << spec.loser << ") lost and " <<
 							candidates[spec.winner].id << " (" << spec.winner << ") won " << endl;
 					}
 
@@ -745,7 +816,10 @@ int main(int argc, const char * argv[])
 						break;
 					}
 					else if(divelb != -2){
-						if(alglog) cout << "Diving LB " << divelb << " current LB " << lowerbound << endl;
+						if(alglog){ 
+                            cout << "Diving LB " << divelb << " current LB " 
+                                << lowerbound << endl;
+                        }
 						lowerbound = max(lowerbound, divelb);
 					}	
 				
@@ -895,6 +969,7 @@ int main(int argc, const char * argv[])
 			cout << "============================================" << endl;
 			cout << "AUDITS REQUIRED" << endl;
 			maxasn = 0;
+            Audits final_config;
 			for(Audits::const_iterator it = audits.begin(); it != audits.end();++it){
                 bool subsumed = false;
                 for(Audits::const_iterator jt = audits.begin(); jt != audits.end(); ++jt){
@@ -905,6 +980,7 @@ int main(int argc, const char * argv[])
                     }
                 }
                 if(!subsumed){
+                    final_config.push_back(*it);
 				    PrintAudit(*it, candidates);
 				    maxasn = max(maxasn, it->asn);
                 }
@@ -913,6 +989,9 @@ int main(int argc, const char * argv[])
 			maxasn *= 100;
 			cout << "MAX ASN(%) " << maxasn << endl;
 			cout << "============================================" << endl;
+            if(json_output != NULL){
+                OutputToJSON(final_config, candidates, json_output);
+            }
 		}
 		else{
 			if(alglog){
