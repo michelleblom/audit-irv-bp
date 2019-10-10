@@ -472,7 +472,15 @@ double PerformDive(const Node &toexpand, const Candidates &cands,
  *
  * -r VALUE              Risk limit (e.g., 0.05 represents a risk limit of 5%)
  * -dive                 If present, diving optimisation will be performed during search
- *                           for best configuration of facts to audit. RECOMMEND.
+ *                           for best configuration of facts to audit. RECOMMEND (default).
+ *
+ * -agap VALUE           This program finds a set of facts that require the least 
+ *                           number of anticipated ballot polls to audit (via a comparison
+ *                           audit). The implemented algorithm is based on branch-and-bound, 
+ *                           and will terminate once the difference between largest valued
+ *                           node on the frontier and a running lower bound on required effort
+ *                           (ballot polls) to audit the given election is less than
+ *                           (or equal to) agap. 
  *
  * -alglog               If present, log messages designed to indicate how the algorithm is
  *                           progressing will be printed.
@@ -514,6 +522,7 @@ int main(int argc, const char * argv[])
 		const char *act_blts_file = NULL;
 		const char *audit_spec_file = NULL;
         const char *json_output = NULL;
+		double allowed_gap = 0.005;
 
 		for(int i = 1; i < argc; ++i){
 			if(strcmp(argv[i], "-rep_ballots") == 0 && i < argc-1){
@@ -550,6 +559,10 @@ int main(int argc, const char * argv[])
 			else if(strcmp(argv[i], "-runlog") == 0){
 				runlog = true;
 			} 
+			else if(strcmp(argv[i], "-agap") == 0 && i < argc-1){
+				allowed_gap = ToType<double>(argv[i+1]);
+				++i;
+			}
 			else if(strcmp(argv[i], "-run") == 0 && i < argc - 1){
 				runAudits = true;
 				audit_spec_file = argv[i+1];
@@ -783,6 +796,22 @@ int main(int argc, const char * argv[])
 
 
 		while(true && !auditfailed){
+			if(lowerbound > 0 && allowed_gap > 0){
+				double max_on_frontier = -1;
+				for(Frontier::const_iterator it = front.begin(); it != front.end(); ++it){
+					if(it->estimate == -1){
+						max_on_frontier = -1;
+						break;
+					}
+					else{
+						max_on_frontier = max(it->estimate, max_on_frontier);
+					}
+				}
+				if(max_on_frontier != -1 && max_on_frontier - lowerbound <= allowed_gap){
+					break;
+				}
+			}
+
 			// Expand node with highest ASN (-1 == infinity)
 			Node toexpand = front.front();
 			if(!toexpand.expandable){

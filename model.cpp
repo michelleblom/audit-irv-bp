@@ -77,6 +77,7 @@ std::string exec(const char* cmd) {
 
 void select_random_ballots(int nballots, long seed, Ints &r){
 	stringstream ss;
+    // IMPORTANT: Replace python3.6 with your python version 
 	ss << "python3.6 Sampler.py " << seed << " " << nballots;
 	auto x = ss.str();
 	cout << ss.str() << endl;
@@ -199,8 +200,6 @@ bool ReadReportedBallots(const char *path, Ballots &ballots,
 			config.id2index.insert(pair<int,int>(id,i));
 		}
 
-		// Ignore party affiliations
-		getline(infile, line);
 		// Skip next line (separator)
 		getline(infile, line);
 		boostcharsep sp(",():");
@@ -351,9 +350,6 @@ bool ReadActualBallots(const char *path, Ballots &ballots,
 		// First line is list of candidates.
 		boostcharsep spcom(",");
 		string line;
-		getline(infile, line);
-
-		// Ignore party affiliations
 		getline(infile, line);
 
 		// Skip next line (separator)
