@@ -208,11 +208,12 @@ void PrintNode(const Node &n, const Candidates &cand){
 
 
 void OutputToJSON(const Audits &aconfig, const Candidates &cand, 
-    const char *json_file){
+    const char *json_file, int num_ballots){
     try{
         ptree pt;
         ptree children;
 
+        double maxasn = 0;
         for(int i = 0; i < aconfig.size(); ++i){
             const AuditSpec &spec = aconfig[i];
             ptree child;
@@ -242,7 +243,9 @@ void OutputToJSON(const Audits &aconfig, const Candidates &cand,
             child.put("Winner-Only", spec.wonly);
             child.put("Explanation", ss.str());
             children.push_back(std::make_pair("", child));
+            maxasn = max(maxasn, spec.asn);
         }
+        pt.put("Expected Polls", ceil(num_ballots*min(1.0,maxasn)));
         pt.add_child("Assertions", children);
         write_json(json_file, pt);
     }
@@ -259,6 +262,7 @@ void OutputToJSON(const Audits &aconfig, const Candidates &cand,
         throw STVException("Something went wrong when outputing to JSON");
 	}
 }
+
 
 
 void PrintAudit(const AuditSpec &audit, const Candidates &cand){
@@ -1019,7 +1023,7 @@ int main(int argc, const char * argv[])
 			cout << "MAX ASN(%) " << maxasn << endl;
 			cout << "============================================" << endl;
             if(json_output != NULL){
-                OutputToJSON(final_config, candidates, json_output);
+                OutputToJSON(final_config, candidates, json_output, config.totalvotes);
             }
 		}
 		else{
