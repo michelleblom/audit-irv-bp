@@ -234,8 +234,6 @@ bool ReadReportedBallots(const char *path, Ballots &ballots,
 				prefs.push_back(index);
 			}
 
-			if(prefs.empty()) continue;
-
 			for(int j = 0; j < votes; ++j){
 				Ballot b;
 				b.tag = cntr;
@@ -243,7 +241,7 @@ bool ReadReportedBallots(const char *path, Ballots &ballots,
 				b.votes = 1;
 
 				double roll = rand() / ((double)RAND_MAX);
-				if(roll <= errorp){
+				if(!prefs.empty() && roll <= errorp){
 					roll = rand() / ((double)RAND_MAX);
 
 					Ints cands_in(config.ncandidates, 0);
@@ -289,7 +287,8 @@ bool ReadReportedBallots(const char *path, Ballots &ballots,
 							if(pos == 0)
 								b.prefs.insert(b.prefs.begin(),cands_out[idx]);
 							else
-								b.prefs.insert(b.prefs.begin()+pos,cands_out[idx]);
+								b.prefs.insert(b.prefs.begin()+
+                                    pos,cands_out[idx]);
 						}
 						else{
 							// Subtract candidate from random position
@@ -306,8 +305,10 @@ bool ReadReportedBallots(const char *path, Ballots &ballots,
 
 				ballots.push_back(b);
  
-				Candidate &cand = candidates[b.prefs.front()];
-				cand.sum_votes += 1;
+                if(!prefs.empty()){
+				    Candidate &cand = candidates[b.prefs.front()];
+				    cand.sum_votes += 1;
+                }
 				config.totalvotes += 1;
 			
 				for(int k = 0; k < b.prefs.size(); ++k){
@@ -384,8 +385,6 @@ bool ReadActualBallots(const char *path, Ballots &ballots,
 
 				prefs.push_back(index);
 			}
-
-			if(prefs.empty()) continue;
 
 			for(int j = 0; j < votes; ++j){
 				Ballot b;

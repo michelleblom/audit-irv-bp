@@ -201,7 +201,8 @@ void PrintNode(const Node &n, const Candidates &cand){
 		for(int i = 1; i < n.best_ancestor.tail.size(); ++i){
 			cout << cand[n.best_ancestor.tail[i]].id << " ";
 		}
-		cout << " [" << ((n.best_ancestor.estimate == -1) ? -1 : n.best_ancestor.estimate*100) << "])";
+		cout << " [" << ((n.best_ancestor.estimate == -1) ? 
+            -1 : n.best_ancestor.estimate*100) << "])";
 	}
 }
 
@@ -278,19 +279,7 @@ void PrintAudit(const AuditSpec &audit, const Candidates &cand){
 	for(int i = 0; i < audit.eliminated.size(); ++i){
 		cout << "," << cand[audit.eliminated[i]].id;
 	}
-
-    if(audit.wonly){
-        cout << ",Rules out case where " <<  cand[audit.winner].id 
-            << " is eliminated before " << cand[audit.loser].id << endl;
-    }
-    else{
-        cout << ",Rules out outcomes with a tail [...";
-        for(int i = 0; i < audit.rules_out.size(); ++i){
-            cout << " " << cand[audit.rules_out[i]].id;
-        }
-	    cout << "]" << endl;
-    }
-
+    cout << endl;
 }
 
 void PrintFrontier(const Frontier &front, const Candidates &cand){
@@ -302,8 +291,10 @@ void PrintFrontier(const Frontier &front, const Candidates &cand){
 }
 
 
-double FindBestAudit(const Candidates &candidates, const Ballots &ballots, double logrlimit,
-	AuditSpec &best_audit, const vector<OrderFacts> &facts, const Ints &tail, bool alglog){
+double FindBestAudit(const Candidates &candidates, const Ballots &ballots, 
+    double logrlimit, AuditSpec &best_audit, const vector<OrderFacts> &facts, 
+    const Ints &tail, bool alglog)
+{
 	const int i = tail[0];
 	double best_estimate = -1;
 
@@ -313,7 +304,8 @@ double FindBestAudit(const Candidates &candidates, const Ballots &ballots, doubl
 		const OrderFacts &ofacts_tt = facts[tt];
 		for(int k = 0; k < ofacts_tt.after.size(); ++k){
 			if(ofacts_tt.after[k] == i){
-				if(best_estimate == -1 || ofacts_tt.after_audits[k].asn < best_estimate){
+				if(best_estimate == -1 || ofacts_tt.after_audits[k].asn < 
+                    best_estimate){
 					best_audit = ofacts_tt.after_audits[k];
 					best_estimate = ofacts_tt.after_audits[k].asn;
 				}	
@@ -331,7 +323,8 @@ double FindBestAudit(const Candidates &candidates, const Ballots &ballots, doubl
 		const OrderFacts &ofacts_i = facts[i];
 		for(int l = 0; l < ofacts_i.after.size(); ++l){
 			if(ofacts_i.after[l] == k){
-				if(best_estimate == -1 || ofacts_i.after_audits[l].asn < best_estimate){
+				if(best_estimate == -1 || ofacts_i.after_audits[l].asn < 
+                    best_estimate){
 					best_audit = ofacts_i.after_audits[l];
 					best_estimate = ofacts_i.after_audits[l].asn;
 				}	
@@ -347,7 +340,8 @@ double FindBestAudit(const Candidates &candidates, const Ballots &ballots, doubl
 	alternate.asn = EstimateSampleSize(ballots, candidates,
 		logrlimit, tail, alternate, alglog);
 
-	if(alternate.asn != -1 && (best_estimate == -1 || alternate.asn < best_estimate)){
+	if(alternate.asn != -1 && (best_estimate == -1 || 
+        alternate.asn < best_estimate)){
 		best_audit = alternate;
 		best_estimate = alternate.asn;
 	} 
@@ -393,7 +387,9 @@ void ReplaceWithBestAncestor(Frontier &front, const Node &newn,
 }
 
 double PerformDive(const Node &toexpand, const Candidates &cands, 
-	const Ballots &rep_ballots, double logrlimit, const vector<OrderFacts> &facts){
+	const Ballots &rep_ballots, double logrlimit, 
+    const vector<OrderFacts> &facts)
+{
 	const int ncands = cands.size();
 	for(int i = 0; i < ncands; ++i){
 		if(find(toexpand.tail.begin(), toexpand.tail.end(), i) ==
@@ -461,43 +457,56 @@ double PerformDive(const Node &toexpand, const Candidates &cands,
 /**
  * Summary of command line options:
  * 
- * User can design their own reported vs actual ballot files, or provide the same file for
- * both and values for -eseed and -eprob. In the latter case, errors will be automatically
- * added to the reported ballots (using eseed and eprob) after they are read from file.
+ * User can design their own reported vs actual ballot files, or provide the
+ * same file for both and values for -eseed and -eprob. In the latter case,
+ * errors will be automatically added to the reported ballots (using eseed and
+ * eprob) after they are read from file.
  *
- * This program is designed to both find an audit specification for a given election, and 
- * run the audit -- depending on the commanline arguments specified. When used to find an
- * audit specification, it will be printed to stdout. 
+ * This program is designed to both find an audit specification for a given
+ * election, and run the audit -- depending on the commanline arguments
+ * specified. When used to find an audit specification, it will be printed to
+ * stdout. 
  *
  * -rep_ballots FILE     File containing reported ballots (electronic records)
- * -act_ballots FILE     File containing actual ballots (representing actual paper ballots)
- * -simlog               If present, log messages will be printed throughout initial 
- *                           simulation of election (on basis of reported ballots)
+ * -act_ballots FILE     File containing actual ballots (representing actual 
+ *                           paper ballots)
+ * -simlog               If present, log messages will be printed throughout 
+ *                           initial simulation of election (on basis of 
+ *                           reported ballots)
  *
  * -r VALUE              Risk limit (e.g., 0.05 represents a risk limit of 5%)
- * -dive                 If present, diving optimisation will be performed during search
- *                           for best configuration of facts to audit. RECOMMEND (default).
+ * -dive                 If present, diving optimisation will be performed 
+ *                           during search for best configuration of facts 
+ *                           to audit. RECOMMEND (default).
  *
- * -agap VALUE           This program finds a set of facts that require the least 
- *                           number of anticipated ballot polls to audit (via a comparison
- *                           audit). The implemented algorithm is based on branch-and-bound, 
- *                           and will terminate once the difference between largest valued
- *                           node on the frontier and a running lower bound on required effort
- *                           (ballot polls) to audit the given election is less than
+ * -agap VALUE           This program finds a set of facts that require the 
+ *                           least number of anticipated ballot polls to audit
+ *                           (via a comparison audit). The implemented 
+ *                           algorithm is based on branch-and-bound, 
+ *                           and will terminate once the difference between 
+ *                           largest valued node on the frontier and a running 
+ *                           lower bound on required effort (ballot polls) to 
+ *                           audit the given election is less than
  *                           (or equal to) agap. 
  *
- * -alglog               If present, log messages designed to indicate how the algorithm is
- *                           progressing will be printed.
- * -s VALUE              Seed for randomly sampling of ballots (when running audits).
- * -eseed VALUE          Seed used to randomly inject errors into reported ballots.
- * -eprob VALUE          Probability (0 to 1) with which errors will be injected into a ballot.
+ * -alglog               If present, log messages designed to indicate how the 
+ *                           algorithm is progressing will be printed.
+ * -s VALUE              Seed for randomly sampling of ballots (when running 
+ *                           audits).
+ * -eseed VALUE          Seed used to randomly inject errors into reported 
+ *                           ballots.
+ * -eprob VALUE          Probability (0 to 1) with which errors will be 
+ *                           injected into a ballot.
  *
- * -runlog               If present, log messages will be printed when an audit is run.
- * -run FILE             Given a file containing an audit specification, the program will
- *                           run the audit (rather than find an audit specification).   
+ * -runlog               If present, log messages will be printed when an 
+ *                           audit is run.
+ * -run FILE             Given a file containing an audit specification, the 
+ *                           program will run the audit (rather than find an 
+ *                           audit specification).   
  *
- * -json FILE           When using the program to generate an audit, this option specifies
- *                           that the audit configuration should be output to a json file.   
+ * -json FILE           When using the program to generate an audit, this 
+ *                           option specifies that the audit configuration 
+ *                           should be output to a json file.   
  * */
 int main(int argc, const char * argv[]) 
 {
@@ -547,12 +556,6 @@ int main(int argc, const char * argv[])
 			else if(strcmp(argv[i], "-alglog") == 0){
 				alglog = true;
 			}
-			//else if(strcmp(argv[i], "-dfirst") == 0){
-			//	depthfirst = true;
-			//} // experiment with different optimisations -- was not good.
-			//else if(strcmp(argv[i], "-prune") == 0){
-			//	pruneLB = true;
-			//} // setting prune to true by default as it was best setting.
 			else if(strcmp(argv[i], "-dive") == 0){
 				diving = true;
 			}
@@ -596,18 +599,21 @@ int main(int argc, const char * argv[])
 			cout << "Reported ballots read error. Exiting." << endl;
 			return 1;
 		}
-		if(act_blts_file != NULL && !ReadActualBallots(act_blts_file,act_ballots,candidates,config)){
+		if(act_blts_file != NULL && !ReadActualBallots(act_blts_file,
+            act_ballots,candidates,config)){
 			cout << "Actual ballots read error. Exiting." << endl;
 			return 1;
 		}
 
-		if(runAudits && !LoadAudits(audit_spec_file, torun, candidates, config)){
+		if(runAudits && !LoadAudits(audit_spec_file,torun,candidates,config)){
 			cout << "Audit specs read error. Exiting." << endl;
 			return 1;
 		}
 
 		for(int i = 0; i < rep_ballots.size(); ++i){
-			candidates[rep_ballots[i].prefs[0]].ballots.push_back(i);
+            const Ballot &bt = rep_ballots[i];
+            if(bt.prefs.empty()) continue;
+			candidates[bt.prefs[0]].ballots.push_back(i);
 		}
 
 		int ncands = candidates.size();
@@ -637,24 +643,31 @@ int main(int argc, const char * argv[])
 
 				if(spec.wonly){
 					if(runlog){
-						cout<<"======================WONLY======================="<<endl;
-						cout << "Winning candidate: "<<candidates[spec.winner].id <<  " (" 
+						cout<<"======================WONLY===============" <<
+                            "========"<<endl;
+						cout << "Winning candidate: "<<
+                            candidates[spec.winner].id <<  " (" 
                             << spec.winner << ")" << endl;
-						cout << "Against losing candidate: "<<candidates[spec.loser].id << " (" 
+						cout << "Against losing candidate: " <<
+                            candidates[spec.loser].id << " (" 
                             << spec.loser << ")" << endl;
 					}
-					Result r = RunSingleWinnerLoserAudit(rep_ballots, act_ballots,
-						candidates, rlimit, spec.winner, spec.loser, poll_order);
+					Result r = RunSingleWinnerLoserAudit(rep_ballots, 
+                        act_ballots, candidates, rlimit, spec.winner, 
+                        spec.loser, poll_order);
 					if(runlog){
-						cout << r.polls << " (" << r.polls/config.totalvotes << 
-							") ballot polls required" << endl;
+						cout << r.polls << " (" << r.polls/config.totalvotes 
+                            <<  ") ballot polls required" << endl;
 					}
 
 					if(r.remaining_hypotheses > 0){
 						if(runlog){
-							cout << r.remaining_hypotheses << " null hypotheses could " <<
-								"not be disproven with risk limit " << rlimit << endl;
-							cout<<"=================================================="<<endl;
+							cout << r.remaining_hypotheses << 
+                                " null hypotheses could " <<
+								"not be disproven with risk limit " << 
+                                rlimit << endl;
+							cout<<"======================================" <<
+                                "============"<<endl;
 						}
 						maxpolls_req = config.totalvotes;
 						continue;
@@ -662,13 +675,15 @@ int main(int argc, const char * argv[])
 					success += 1;
 					maxpolls_req = max(maxpolls_req, r.polls);
 					if(runlog){
-						cout<<"=================================================="<<endl;
+						cout<<"==========================================" <<
+                            "========"<<endl;
 					}
 				}
 				else{
 					// Simulate elimination of appropriate candidates
 					for(int k = 0; k < spec.eliminated.size(); ++k){
-						SimulateElimination(spec.eliminated[k], rep_ballots, candidates);
+						SimulateElimination(spec.eliminated[k], rep_ballots, 
+                            candidates);
 					}
 					Ints winners;
 					Ints losers;
@@ -676,10 +691,12 @@ int main(int argc, const char * argv[])
 					losers.push_back(spec.loser);
 
 					if(runlog){
-						cout<<"================================================="<<endl;
-						cout << "Auditing that "<<candidates[spec.loser].id<< " (" 
-                            << spec.loser << ") lost and " <<
-							candidates[spec.winner].id << " (" << spec.winner << ") won " << endl;
+						cout<<"=========================================" <<
+                            "========"<<endl;
+						cout << "Auditing that "<<candidates[spec.loser].id
+                            << " (" << spec.loser << ") lost and " <<
+							candidates[spec.winner].id << " (" << 
+                            spec.winner << ") won " << endl;
 					}
 
 					Result r = RunAudit(rep_ballots, act_ballots, candidates, 
@@ -689,9 +706,12 @@ int main(int argc, const char * argv[])
 							") ballot polls required" << endl;
 					}
 					if(r.remaining_hypotheses > 0){
-						cout << r.remaining_hypotheses << " null hypotheses could " <<
-							"not be disproven with risk limit " << rlimit << endl;
-						cout<<"=================================================="<<endl;
+						cout << r.remaining_hypotheses << 
+                            " null hypotheses could " <<
+							"not be disproven with risk limit " << 
+                            rlimit << endl;
+						cout<<"=========================================" <<
+                            "========="<<endl;
 						maxpolls_req = config.totalvotes;
 						continue;
 					}
@@ -699,14 +719,16 @@ int main(int argc, const char * argv[])
 					success += 1;
 					maxpolls_req = max(maxpolls_req, r.polls);
 					if(runlog){
-						cout<<"=================================================="<<endl;
+						cout<<"==========================================" <<
+                            "========"<<endl;
 					}
 				}
 			}
 
 			cout << "TOTAL BALLOTS POLLED = " << maxpolls_req << " (" << 
 				100*(maxpolls_req/config.totalvotes) << "%)" << endl;
-			cout << "SUCCESSFUL AUDITS = " << success << "/" << torun.size() << endl;
+			cout << "SUCCESSFUL AUDITS = " << success << "/" << 
+                torun.size() << endl;
 			return 0;	
 		}
 
@@ -802,7 +824,8 @@ int main(int argc, const char * argv[])
 		while(true && !auditfailed){
 			if(lowerbound > 0 && allowed_gap > 0){
 				double max_on_frontier = -1;
-				for(Frontier::const_iterator it = front.begin(); it != front.end(); ++it){
+				for(Frontier::const_iterator it = front.begin(); 
+                    it != front.end(); ++it){
 					if(it->estimate == -1){
 						max_on_frontier = -1;
 						break;
@@ -811,7 +834,8 @@ int main(int argc, const char * argv[])
 						max_on_frontier = max(it->estimate, max_on_frontier);
 					}
 				}
-				if(max_on_frontier != -1 && max_on_frontier - lowerbound <= allowed_gap){
+				if(max_on_frontier != -1 && max_on_frontier - 
+                    lowerbound <= allowed_gap){
 					break;
 				}
 			}
@@ -825,14 +849,17 @@ int main(int argc, const char * argv[])
 			front.pop_front();
 
 			if(pruneLB){
-				if((toexpand.has_ancestor && toexpand.best_ancestor.estimate != -1 &&
+				if((toexpand.has_ancestor && 
+                    toexpand.best_ancestor.estimate != -1 &&
 					toexpand.best_ancestor.estimate <= lowerbound)){
 					// Replace all descendents of best ancestor with ancestor.
-					ReplaceWithBestAncestor(front, toexpand, candidates, alglog);
+					ReplaceWithBestAncestor(front,toexpand,candidates,alglog);
 					continue;
 				}
-				else if(toexpand.estimate != -1 && toexpand.estimate <= lowerbound){
-					// Don't expand, just make "unexpandable" and move to back of list.
+				else if(toexpand.estimate != -1 && 
+                    toexpand.estimate <= lowerbound){
+					// Don't expand, just make "unexpandable" and 
+                    // move to back of list.
 					toexpand.expandable = false;
 					front.insert(front.end(), toexpand);
 					continue;
@@ -844,7 +871,8 @@ int main(int argc, const char * argv[])
 						rep_ballots, logrlimit, facts);
 					if(divelb == -1){
 						// Audit not possible
-						if(alglog) cout << "Diving finds that audit is not possible." << endl;
+						if(alglog) cout << "Diving finds that audit is " <<
+                            "not possible." << endl;
 						auditfailed = true;
 						break;
 					}
@@ -857,14 +885,19 @@ int main(int argc, const char * argv[])
 					}	
 				
 
-					if((toexpand.has_ancestor && toexpand.best_ancestor.estimate != -1 &&
+					if((toexpand.has_ancestor && 
+                        toexpand.best_ancestor.estimate != -1 &&
 						toexpand.best_ancestor.estimate <= lowerbound)){
-						// Replace all descendents of best ancestor with ancestor.
-						ReplaceWithBestAncestor(front, toexpand, candidates, alglog);
+						// Replace all descendents of best ancestor 
+                        // with ancestor.
+						ReplaceWithBestAncestor(front, toexpand, 
+                            candidates, alglog);
 						continue;
 					}
-					else if(toexpand.estimate != -1 && toexpand.estimate <= lowerbound){
-						// Don't expand, just make "unexpandable" and move to back of list.
+					else if(toexpand.estimate != -1 && 
+                        toexpand.estimate <= lowerbound){
+						// Don't expand, just make "unexpandable" 
+                        // and move to back of list.
 						toexpand.expandable = false;
 						front.insert(front.end(), toexpand);
 						continue;
@@ -894,7 +927,7 @@ int main(int argc, const char * argv[])
 					newn.best_audit.wonly = false;
 					newn.best_audit.asn = -1;
 					newn.estimate = -1;
-					newn.expandable = (newn.tail.size() == ncands) ? false : true;
+					newn.expandable = (newn.tail.size() == ncands)?false:true;
 				
 					if(alglog){
 						cout << "TESTING ";
@@ -909,7 +942,8 @@ int main(int argc, const char * argv[])
 					if(toexpand.has_ancestor){
 						if((toexpand.estimate == -1) ||
 							(toexpand.best_ancestor.estimate != -1 &&
-							toexpand.best_ancestor.estimate <= toexpand.estimate)){
+							toexpand.best_ancestor.estimate <= 
+                            toexpand.estimate)){
 							newn.best_ancestor = toexpand.best_ancestor;
 						}
 						else{
@@ -920,13 +954,14 @@ int main(int argc, const char * argv[])
 						newn.best_ancestor = CreateSimpleNode(toexpand); 
 					}
 					newn.has_ancestor = true;
-					newn.estimate = FindBestAudit(candidates, rep_ballots, logrlimit,
-						newn.best_audit, facts, newn.tail, alglog);
+					newn.estimate = FindBestAudit(candidates, rep_ballots, 
+                        logrlimit, newn.best_audit, facts, newn.tail, alglog);
 
 					if(!newn.expandable){
 						bool replace = false;
 						if(newn.estimate == -1){
-							if(!newn.has_ancestor || newn.best_ancestor.estimate == -1){
+							if(!newn.has_ancestor || 
+                                newn.best_ancestor.estimate == -1){
 								// Audit is not possible.
 								auditfailed = true;
 								break;
@@ -938,10 +973,12 @@ int main(int argc, const char * argv[])
 							replace = true;
 						}
 						if(replace){
-							// Replace all descendents of newn.best_ancestor with the ancestor
-							// and make expandable = false
-							lowerbound = max(lowerbound, newn.best_ancestor.estimate);
-							ReplaceWithBestAncestor(front, newn, candidates, alglog);
+							// Replace all descendents of newn.best_ancestor 
+                            // with the ancestor and make expandable = false
+							lowerbound = max(lowerbound, 
+                                newn.best_ancestor.estimate);
+							ReplaceWithBestAncestor(front, newn, 
+                                candidates, alglog);
 						}
 						else{
 							if(alglog){
@@ -974,8 +1011,9 @@ int main(int argc, const char * argv[])
 				break;
 			}  
 			if(alglog){
-				cout << endl << "Size of frontier " << front.size() << ", Nodes expanded "
-					<< nodesexpanded << ", Current threshold " << lowerbound <<  endl << endl;
+				cout << endl << "Size of frontier " << front.size() << 
+                    ", Nodes expanded " << nodesexpanded << 
+                    ", Current threshold " << lowerbound <<  endl << endl;
 			}
 		}
 
@@ -986,9 +1024,11 @@ int main(int argc, const char * argv[])
 		if(!auditfailed){
 			// Compile list of audits to complete.
 			Audits audits;
-			for(Frontier::const_iterator it = front.begin(); it != front.end(); ++it){
+			for(Frontier::const_iterator it = front.begin(); 
+                it != front.end(); ++it){
 				bool pruneaudit = false;
-				for(Audits::const_iterator at = audits.begin(); at != audits.end(); ++at){
+				for(Audits::const_iterator at = audits.begin(); 
+                    at != audits.end(); ++at){
 					if(AreAuditsEqual(*at, it->best_audit)){
 						pruneaudit = true;
 						break;
@@ -1003,9 +1043,11 @@ int main(int argc, const char * argv[])
 			cout << "AUDITS REQUIRED" << endl;
 			maxasn = 0;
             Audits final_config;
-			for(Audits::const_iterator it = audits.begin(); it != audits.end();++it){
+			for(Audits::const_iterator it = audits.begin(); 
+                it != audits.end();++it){
                 bool subsumed = false;
-                for(Audits::const_iterator jt = audits.begin(); jt != audits.end(); ++jt){
+                for(Audits::const_iterator jt = audits.begin(); 
+                    jt != audits.end(); ++jt){
                     if(jt == it) continue;
                     if(Subsumes(*jt, *it)){
                         subsumed = true;
@@ -1023,7 +1065,8 @@ int main(int argc, const char * argv[])
 			cout << "MAX ASN(%) " << maxasn << endl;
 			cout << "============================================" << endl;
             if(json_output != NULL){
-                OutputToJSON(final_config, candidates, json_output, config.totalvotes);
+                OutputToJSON(final_config, candidates, json_output, 
+                    config.totalvotes);
             }
 		}
 		else{
@@ -1034,7 +1077,8 @@ int main(int argc, const char * argv[])
 		}
 		if(maxasn == -1) maxasn = 100;
 
-		cout << "TIME," << tend.seconds - tstart.seconds << ",Nodes Expanded," << nodesexpanded
+		cout << "TIME," << tend.seconds - tstart.seconds << 
+            ",Nodes Expanded," << nodesexpanded
 			<< ",MAX ASN(%)," << maxasn << endl;
 	}
 	catch(exception &e)

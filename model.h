@@ -48,8 +48,11 @@ struct mytimespec
 
 void GetTime(struct mytimespec* t);
 
-void Split2Ints(const std::string &line, const boost::char_separator<char> &sep, Ints &r);
-void Split(const std::string &line, const boost::char_separator<char> &sep, std::vector<std::string> &r);
+void Split2Ints(const std::string &line, 
+    const boost::char_separator<char> &sep, Ints &r);
+
+void Split(const std::string &line, const boost::char_separator<char> &sep, 
+    std::vector<std::string> &r);
 
 struct Config
 {

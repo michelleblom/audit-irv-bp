@@ -138,7 +138,8 @@ double EstimateSampleSizeWL(const Ballots &ballots, const Candidates &cand,
 		return -1;
 	}
 	const double log2swl = log(2*swl);
-	double candasn = ceil((logrlimit+0.5*log2swl)/(double)(pw*log2swl+pl*log(2-2*swl)));
+	double candasn = ceil((logrlimit+0.5*log2swl)/
+        (double)(pw*log2swl+pl*log(2-2*swl)));
 
 	return candasn/total_votes_present; 
 }
@@ -187,7 +188,8 @@ double EstimateSampleSize(const Ballots &ballots, const Candidates &cand,
 		double swl = (pw == 0) ? 0 : pw / (pl + pw);
 		double candasn = -1;
 		const double log2swl = log(2*swl);
-		candasn = ceil((logrlimit+0.5*log2swl)/(double)(pw*log2swl+pl*log(2-2*swl)))/totalvotes;
+		candasn = ceil((logrlimit+0.5*log2swl)/
+            (double)(pw*log2swl+pl*log(2-2*swl)))/totalvotes;
 
 		if(smallest == -1 || candasn < smallest){
 			best_audit.asn = candasn;
@@ -211,7 +213,8 @@ Result RunSingleWinnerLoserAudit(const Ballots &rep_ballots,
 	relevant.push_back(winner);
 	relevant.push_back(loser);
 
-	for(Ballots::const_iterator bt = rep_ballots.begin(); bt != rep_ballots.end(); ++bt){
+	for(Ballots::const_iterator bt = rep_ballots.begin(); 
+        bt != rep_ballots.end(); ++bt){
 		int nextcand = GetFirstCandidateIn(bt->prefs, relevant);
 		if(nextcand == loser){
 			total_votes_loser += 1;
@@ -219,7 +222,8 @@ Result RunSingleWinnerLoserAudit(const Ballots &rep_ballots,
 	}
 	
 	const double frlimit = 1.0/rlimit;
-	const double swl = total_votes_winner / (double)(total_votes_winner + total_votes_loser);
+	const double swl = total_votes_winner / 
+        (double)(total_votes_winner + total_votes_loser);
  
 	double twl = 1;
 	int polls = 0;
@@ -274,12 +278,9 @@ Result RunAudit(const Ballots &rep_ballots, const Ballots &act_ballots,
 	for(Ints::const_iterator wt=winners.begin(); wt!=winners.end(); ++wt){
 		action[*wt] = 1;
 		for(Ints::const_iterator lt=losers.begin(); lt!=losers.end(); ++lt){
-			//cout << " Simulated votes for winner " << *wt << " " << cand[*wt].sim_votes
-			//	<< " and loser " << *lt << " " << cand[*lt].sim_votes << endl;
 			double swl = cand[*wt].sim_votes/(double)(cand[*wt].sim_votes+cand[*lt].sim_votes);
 			swl_mult[*wt][*lt] =  swl/0.5;
 			swl_mult[*lt][*wt] = (1 - swl)/0.5;
-			//cout << "swl for w = " << *wt << " and l = " << *lt << " is " << swl << endl;
 		}
 	}
 
@@ -307,28 +308,32 @@ Result RunAudit(const Ballots &rep_ballots, const Ballots &act_ballots,
 		}
 
 		if(action[c] == 1){ //winner
-			for(Ints::const_iterator lt=losers.begin(); lt!=losers.end(); ++lt){
+			for(Ints::const_iterator lt=losers.begin();lt!=losers.end();++lt){
 				if(tstats[c][*lt] != -1){
-					cout << "winner Twl["<<c<<"]["<<*lt<<"] : " << tstats[c][*lt] << " -> ";
+					cout << "winner Twl["<<c<<"]["<<*lt<<"] : " << 
+                        tstats[c][*lt] << " -> ";
 					tstats[c][*lt] *= swl_mult[c][*lt];	
 					cout << tstats[c][*lt] << endl;
 					if(tstats[c][*lt] >= frlimit){
 						tstats[c][*lt] = -1;
-						cout << "Rejecting hypothesis " <<  "Twl["<<c<<"]["<<*lt<<"]" << endl; 
+						cout << "Rejecting hypothesis " <<  "Twl["<<
+                            c<<"]["<<*lt<<"]" << endl; 
 						++rejects;
 					}
 				}
 			}
 		}
 		else{//loser
-			for(Ints::const_iterator wt=winners.begin(); wt!=winners.end(); ++wt){
+			for(Ints::const_iterator wt=winners.begin();wt!=winners.end();++wt){
 				if(tstats[*wt][c] != -1){
-					cout << "loser Twl["<<*wt<<"]["<<c<<"] : " << tstats[*wt][c] << " -> ";
+					cout << "loser Twl["<<*wt<<"]["<<c<<"] : " 
+                        << tstats[*wt][c] << " -> ";
 					tstats[*wt][c] *= swl_mult[c][*wt];
 					cout << tstats[*wt][c] << endl;
 					if(tstats[*wt][c] >= frlimit){
 						tstats[*wt][c] = -1;
-						cout << "Rejecting hypothesis " <<  "Twl["<<*wt<<"]["<<c<<"]" << endl; 
+						cout << "Rejecting hypothesis " <<  "Twl[" <<
+                            *wt<<"]["<<c<<"]" << endl; 
 						++rejects;
 					}
 				}
